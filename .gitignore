@@ -1,0 +1,10 @@
+.DS_store
+.ipynb_checkpoints
+.vscode
+.learn
+app/app-example/*
+app/appv1.py
+app/appv2.py
+app/data/*.csv
+output/*
+student.ipynb
