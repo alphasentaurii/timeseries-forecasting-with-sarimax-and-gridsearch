@@ -382,6 +382,18 @@ def cityzip_dicts(df, col1, col2):
         
     return dc1, dc2, city_zip
 
+def time_dict(d, xcol='RegionName', ycol='MeanValue'):
+    # zipcodes to plot
+    zipcodes = list(d.keys())
+
+    # create empty dictionary for plotting 
+    txd = {}
+    for i,zc in enumerate(zipcodes):
+        # store each zipcode as ts  
+        ts = d[zc][ycol].rename(zc)
+        txd[zc] = ts
+
+    return txd
 
 def mapTime(d, xcol, ycol='MeanValue', X=None, vlines=None, MEAN=True):
     """
@@ -406,7 +418,10 @@ def mapTime(d, xcol, ycol='MeanValue', X=None, vlines=None, MEAN=True):
     mapTime(d=NYC, xcol='RegionName', y='MeanValue')
     """
     
-    
+    font = {'family' : 'monospace',
+        'weight' : 'bold',
+        'size'   : 24}
+    #mpl.rc('font', **font)
     # create figure for timeseries plot
     fig, ax = plt.subplots(figsize=(21,13))
     plt.title(label=f'Time Series Plot: {str(ycol)}')
@@ -804,6 +819,65 @@ def stopwatch(time='time'):
         
     return time
 
+# From James Irving (Bootcamp) https://github.com/jirvingphd/fsds/blob/master/fsds/jmi/jmi.py
+def thiels_U(ys_true=None, ys_pred=None,display_equation=True,display_table=True):
+    """Calculate's Thiel's U metric for forecasting accuracy.
+    Accepts true values and predicted values.
+    Returns Thiel's U"""
+
+
+    from IPython.display import Markdown, Latex, display
+    import numpy as np
+    display(Markdown(""))
+    eqn=" $$U = \\sqrt{\\frac{ \\sum_{t=1 }^{n-1}\\left(\\frac{\\bar{Y}_{t+1} - Y_{t+1}}{Y_t}\\right)^2}{\\sum_{t=1 }^{n-1}\\left(\\frac{Y_{t+1} - Y_{t}}{Y_t}\\right)^2}}$$"
+
+    # url="['Explanation'](https://docs.oracle.com/cd/E57185_01/CBREG/ch06s02s03s04.html)"
+    markdown_explanation ="|Thiel's U Value | Interpretation |\n\
+    | --- | --- |\n\
+    | <1 | Forecasting is better than guessing| \n\
+    | 1 | Forecasting is about as good as guessing| \n\
+    |>1 | Forecasting is worse than guessing| \n"
+
+
+    if display_equation and display_table:
+        display(Latex(eqn),Markdown(markdown_explanation))#, Latex(eqn))
+    elif display_equation:
+        display(Latex(eqn))
+    elif display_table:
+        display(Markdown(markdown_explanation))
+
+    if ys_true is None and ys_pred is None:
+        return
+
+    # sum_list = []
+    num_list=[]
+    denom_list=[]
+    for t in range(len(ys_true)-1):
+        num_exp = (ys_pred[t+1] - ys_true[t+1])/ys_true[t]
+        num_list.append([num_exp**2])
+        denom_exp = (ys_true[t+1] - ys_true[t])/ys_true[t]
+        denom_list.append([denom_exp**2])
+    U = np.sqrt( np.sum(num_list) / np.sum(denom_list))
+    return U
+
+# From James Irving
+def model_evaluation(ts_true,ts_pred,show=True,show_u_info=False):
+    import fsds_100719 as fs
+    from sklearn.metrics import mean_squared_error,r2_score
+
+    res= [['Metric','Value']]
+    
+    res.append(['RMSE', np.sqrt(mean_squared_error(ts_true,ts_pred))])
+    
+    res.append(['R2',r2_score(ts_true,ts_pred)])
+    res.append(["Thiel's U", thiels_U(ts_true,ts_pred,
+                                            display_equation=show_u_info,
+                                           display_table=show_u_info)])
+    res = fs.list2df(res)
+    
+    if show:
+        display(res)
+    return res
 
 # Run a grid with pdq and seasonal pdq parameters calculated above and get the best AIC value
 
@@ -861,22 +935,7 @@ def calcROI(investment, final_value):
     r = np.round(((final_value - investment) / investment)*100,3)
     return r
 
-def model_evaluation(ts_true,ts_pred,show=True,show_u_info=False):
-    from sklearn.metrics import mean_squared_error,r2_score
 
-    res= [['Metric','Value']]
-    
-    res.append(['RMSE', np.sqrt(mean_squared_error(ts_true,ts_pred))])
-    
-    res.append(['R2',r2_score(ts_true,ts_pred)])
-    res.append(["Thiel's U",fs.jmi.thiels_U(ts_true,ts_pred,
-                                            display_equation=show_u_info,
-                                           display_table=show_u_info)])
-    res = fs.list2df(res)
-    
-    if show:
-        display(res)
-    return res
 
 #ts = NYC[zc]['MeanValue'].rename(zc)
 def forecastX(model_output, train, test, start=None, end=None, get_metrics=True):

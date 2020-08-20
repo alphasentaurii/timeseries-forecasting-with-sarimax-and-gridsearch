@@ -3,7 +3,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import pandas as pd
 # PLOTLY / CUFFLINKS for iplots
 import plotly.express as px
@@ -39,12 +39,70 @@ available_zipcodes = df['RegionName'].unique()
 NYC, nyc, city_zip = spak.cityzip_dicts(df=df, col1='RegionName', col2='City')
 
 
+####### Forecast Prediction Values
+df_preds = pd.read_csv('data/ny_predictions.csv', parse_dates=True)
+df_preds = df_preds.drop('RegionID', axis=1)
+df_preds = spak.makeTime(df_preds, idx='DateTime')
+
+
+# FC = spak.makeTime(df_preds, idx='DateTime')
+# FC = pd.DataFrame()
+FC = df_preds.loc[df_preds.index > '2018-04-01']
+
+# Train Lines
+NY_Newhaven=pd.read_csv('data/newhaven.csv')
+NY_Harlem=pd.read_csv('data/harlem.csv')
+NY_Hudson=pd.read_csv('data/hudson.csv')
+
+#     if start is None:
+#         start = test.index[0]     
+#     if end is None:
+#         end = test.index[-1]    
+        
+#     # Get predictions starting from 2013 and calculate confidence intervals.
+#     prediction = model_output.get_prediction(start=start,end=end, dynamic=True)
+    
+#     forecast = prediction.conf_int()
+#     forecast['predicted_mean'] = prediction.predicted_mean
+#     fc_plot = pd.concat([forecast, train], axis=1)
+
 
 # FIGURES
 
-fig = df.iplot(kind='bar', x='Month', y='MeanValue', title='Time Series with Range Slider and Selectors', asFigure=True)
+# fig = df.iplot(kind='bar', x='Month', y='MeanValue', title='Time Series with Range Slider and Selectors', asFigure=True)
 
-fig.update_xaxes(
+# fig.update_xaxes(
+#     rangeslider_visible=True,
+#     rangeselector=dict(
+#         buttons=list([
+#             dict(count=1, label="1m", step="month", stepmode="backward"),
+#             dict(count=6, label="6m", step="month", stepmode="backward"),
+#             dict(count=1, label="YTD", step="year", stepmode="todate"),
+#             dict(count=1, label="1y", step="year", stepmode="backward"),
+#             dict(step="all")
+#         ])
+#     )
+# )
+
+# fig1
+
+fig1 = go.Figure()
+# fig1.add_trace(go.Scatter(x=df.index, y=df['MeanValue'], name="Mean Home Value",line_color='crimson'))
+# fig1.add_trace(go.Scatter(x=FC.index, y=FC['pred_mean'], name="Forecast Value",line_color='deepskyblue'))
+# fig1.add_trace(go.Scatter(x=NY_Hudson['DateTime'], y=NY_Hudson['MeanValue'], name="Hudson MeanValue",
+#                          line_color='lightgreen'))
+# fig1.update_layout(title_text='MeanValues by Train Line',
+#                   xaxis_rangeslider_visible=True)
+
+txd = spak.time_dict(d=NYC, xcol='RegionName', ycol='MeanValue')
+for k,v in txd.items():
+    fig1.add_trace(go.Line(x=NY['Month'].loc[NY['RegionName']==k], y=NY['MeanValue'].loc[NY['RegionName']==k], name=str(k)))
+
+fig1.update_layout(title_text='Westchester County NY - Mean Home Values',
+                  xaxis_rangeslider_visible=True)
+
+
+fig1.update_xaxes(
     rangeslider_visible=True,
     rangeselector=dict(
         buttons=list([
@@ -57,41 +115,9 @@ fig.update_xaxes(
     )
 )
 
-# fig2
 
-# fig2 = spak.mapTime(d=NYC, xcol='RegionName', ycol='MeanValue', X=[], vlines=True, MEAN=True)
-
-# loop thru each zipcode to create timeseries from its df in NYC dfdict
-txd = {}
-for i,zc in enumerate(NYC):
-    # store each zipcode as ts  
-    ts = NYC[zc]['MeanValue'].rename(zc)
-    txd[zc] = ts
-
-# txd = spak.timeMap(d=NYC, xcol='RegionName', ycol='MeanValue')                  
-
-for zc,ts in txd.items():
-    tx = ts.resample('MS').mean()
-    #tx = df['RegionName']['MeanValue'].rename(zc).resample('MS').asfreq()
-    #tx.rolling(window=7).mean()
-    df['RollingAvg'] = tx
-
-
-fig2 = df.iplot(kind='scatter', x='Month', y='MeanValue', title='Mean Home Values',asFigure=True)
- 
-
-#ts = NYC[10549]['MeanValue'].rename(10549).resample('MS').asfreq()
-
-"""
-fig = df.iplot(kind='bar', x='colfeature', y='targetcol', theme='solar')
-"""
 
 #### FIG 3
-NY_Newhaven=pd.read_csv('data/newhaven.csv')
-NY_Harlem=pd.read_csv('data/harlem.csv')
-NY_Hudson=pd.read_csv('data/hudson.csv')
-
-
 
 fig3 = go.Figure()
 fig3.add_trace(go.Scatter(x=NY_Newhaven['DateTime'], y=NY_Newhaven['MeanValue'], name="NewHaven MeanValue",
@@ -103,10 +129,6 @@ fig3.add_trace(go.Scatter(x=NY_Hudson['DateTime'], y=NY_Hudson['MeanValue'], nam
 fig3.update_layout(title_text='MeanValues by Train Line',
                   xaxis_rangeslider_visible=True)
 
-
-#######
-preds_df = pd.read_csv('data/ny_predictions.csv')
-preds_df.drop('RegionID', axis=1, inplace=True)
 
 top5 = df.loc[(df['RegionName'] == 10708) | (df['RegionName']==10706) | (df['RegionName']==10803) | (df['RegionName']==10514) | (df['RegionName']==10605) ]
 
@@ -167,7 +189,7 @@ def generate_table(dataframe, max_rows=5):
             html.Tr([
                 html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
             ]) for i in range(min(len(dataframe), max_rows))
-        ])
+        ]), 
     ])
 
 # FORECASTING
@@ -192,24 +214,31 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         }
     ),
 
-    dcc.Graph(
-        id='timeseries',
-        figure=fig
-    ),
-    dcc.Graph(
-        id='timeseries-barplot',
-        figure=fig2
-    ),
-    # dcc.Slider(
-    #     id='year--slider',
-    #     min=df['Month'].min(),
-    #     max=df['Month'].max(),
-    #     #value=df['Month'].max(),
-    #     marks={str(year): str(year) for year in df['Month'].unique()},
-    #     step=None
+    # dcc.Graph(
+    #     id='timeseries',
+    #     figure=fig
     # ),
+
     dcc.Graph(
-        id='ts_trace',
+        id='ts',
+        figure=fig1
+    ),
+
+    # dcc.Input(
+    #     id='number-in',
+    #     value=10701,
+    #     style={'fontSize':28}
+    # ),
+    # html.Button(
+    #     id='submit-button',
+    #     n_clicks=0,
+    #     children='Submit',
+    #     style={'fontSize':28}
+    # ),
+    # html.H1(id='number-out'),
+
+    dcc.Graph(
+        id='ts_trainlines',
         figure=fig3
     ),
 
@@ -218,7 +247,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         figure=fig4
     ),
 
-    generate_table(preds_df),
+    generate_table(df_preds),
 
     
     dcc.Graph(
@@ -227,8 +256,8 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
     dcc.Store(
         id='clientside-figure-store',
         data=[{
-            'x': df[df['RegionName'] == '10701']['Month'],
-            'y': df[df['RegionName'] == '10701']['MeanValue']
+            'x': df_preds[df_preds['RegionName'] == '10701'].index,
+            'y': df_preds[df_preds['RegionName'] == '10701']['MeanValue']
         }]
     ),
     'Indicator',
@@ -236,8 +265,8 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         id='clientside-graph-indicator',
         options=[
             {'label': 'Mean Value', 'value': 'MeanValue'},
-            {'label': 'SizeRank', 'value': 'SizeRank'},
-            {'label': 'Rolling Average', 'value': 'RollingAvg'}
+            # {'label': 'SizeRank', 'value': 'SizeRank'},
+            # {'label': 'Rolling Average', 'value': 'RollingAvg'}
         ], 
         value='MeanValue'
     ),
@@ -268,6 +297,13 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
 
 ])
 
+# @app.callback(
+#     Output('number-out', 'children'),
+#     [Input('submit-button', 'n_clicks')],
+#     [State('number-in', 'value')])
+# def output(n_clicks, number):
+#     return '{} displayed after {} clicks'.format(number,n_clicks)
+
 
 @app.callback(
     Output('clientside-figure-store', 'data'),
@@ -275,9 +311,9 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
      Input('clientside-graph-zipcode', 'value')]
 )
 def update_store_data(indicator, zipcode):
-    dff = df[df['RegionName'] == zipcode]
+    dff = df_preds[df_preds['RegionName'] == zipcode]
     return [{
-        'x': dff['Month'],
+        'x': dff.index,
         'y': dff[indicator],
         'mode': 'markers'
     }]
