@@ -31,7 +31,27 @@ data = pd.read_csv('data/newyork_1996-2018.csv', parse_dates=True)
 NY = pd.DataFrame(data)
 df = spak.makeTime(NY, idx='DateTime')
 
+####### Forecast Prediction Values
+df_preds = pd.read_csv('data/ny_predictions.csv', parse_dates=True)
+df_preds = df_preds.drop('RegionID', axis=1)
+df_preds = spak.makeTime(df_preds, idx='DateTime')
+# df_preds = df_preds.loc[df_preds.index >= '2016-02-01'] 
 
+
+preds = pd.read_csv('data/pred_vs_actual.csv', parse_dates=True)
+preds = pd.DataFrame(preds)
+
+forecast = pd.read_csv('data/forecast.csv', parse_dates=True)
+forecast = pd.DataFrame(forecast)
+
+
+# Train Lines
+NY_Newhaven=pd.read_csv('data/newhaven.csv')
+NY_Harlem=pd.read_csv('data/harlem.csv')
+NY_Hudson=pd.read_csv('data/hudson.csv')
+
+
+# DICTIONARIES
 available_zipcodes = df['RegionName'].unique()
 # Create dicts
 # NYC: dict of cities and zip codes
@@ -39,50 +59,32 @@ available_zipcodes = df['RegionName'].unique()
 NYC, nyc, city_zip = spak.cityzip_dicts(df=df, col1='RegionName', col2='City')
 
 
-####### Forecast Prediction Values
-df_preds = pd.read_csv('data/ny_predictions.csv', parse_dates=True)
-df_preds = df_preds.drop('RegionID', axis=1)
-df_preds = spak.makeTime(df_preds, idx='DateTime')
-
-
-# FC = spak.makeTime(df_preds, idx='DateTime')
-# FC = pd.DataFrame()
-FC = df_preds.loc[df_preds.index > '2018-04-01']
-
-# Train Lines
-NY_Newhaven=pd.read_csv('data/newhaven.csv')
-NY_Harlem=pd.read_csv('data/harlem.csv')
-NY_Hudson=pd.read_csv('data/hudson.csv')
-
-#     if start is None:
-#         start = test.index[0]     
-#     if end is None:
-#         end = test.index[-1]    
-        
-#     # Get predictions starting from 2013 and calculate confidence intervals.
-#     prediction = model_output.get_prediction(start=start,end=end, dynamic=True)
-    
-#     forecast = prediction.conf_int()
-#     forecast['predicted_mean'] = prediction.predicted_mean
-#     fc_plot = pd.concat([forecast, train], axis=1)
+txd = spak.time_dict(d=NYC, xcol='RegionName', ycol='MeanValue')
 
 
 # FIGURES
+fig=go.Figure()
+for k,v in txd.items():
+    fig.add_trace(go.Line(x=preds['Month'].loc[preds['RegionName']==k], y=preds['MeanValue'].loc[preds['RegionName']==k], name=f'{k} actual', line_color='lightgrey'))
+    fig.add_trace(go.Line(x=preds['Month'].loc[preds['RegionName']==k], y=preds['predicted'].loc[preds['RegionName']==k], name=f'{k} pred', line_color='royalblue'))
+    fig.add_trace(go.Line(x=forecast['Month'].loc[forecast['RegionName']==k], y=forecast['predicted'].loc[forecast['RegionName']==k], name=f'{k} forecast', line_color='lightseagreen'))
 
-# fig = df.iplot(kind='bar', x='Month', y='MeanValue', title='Time Series with Range Slider and Selectors', asFigure=True)
-
-# fig.update_xaxes(
-#     rangeslider_visible=True,
-#     rangeselector=dict(
-#         buttons=list([
-#             dict(count=1, label="1m", step="month", stepmode="backward"),
-#             dict(count=6, label="6m", step="month", stepmode="backward"),
-#             dict(count=1, label="YTD", step="year", stepmode="todate"),
-#             dict(count=1, label="1y", step="year", stepmode="backward"),
-#             dict(step="all")
-#         ])
-#     )
-# )
+#fig.add_trace(go.Line(x=NY['Month'], y=NY['MeanValue'], name='Actual', line_color='lightgrey'))
+#fig = px.scatter(preds, x=preds.index, y='predicted')
+# fig = preds.iplot(kind='bar', x=index, y='predicted', title='Time Series with Range Slider and Selectors', asFigure=True)
+fig.update_layout(title_text='Predictions and Forecast', xaxis_rangeslider_visible=True)
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeselector=dict(
+        buttons=list([
+            dict(count=1, label="1m", step="month", stepmode="backward"),
+            dict(count=6, label="6m", step="month", stepmode="backward"),
+            dict(count=1, label="YTD", step="year", stepmode="todate"),
+            dict(count=1, label="1y", step="year", stepmode="backward"),
+            dict(step="all")
+        ])
+    )
+)
 
 # fig1
 
@@ -94,7 +96,6 @@ fig1 = go.Figure()
 # fig1.update_layout(title_text='MeanValues by Train Line',
 #                   xaxis_rangeslider_visible=True)
 
-txd = spak.time_dict(d=NYC, xcol='RegionName', ycol='MeanValue')
 for k,v in txd.items():
     fig1.add_trace(go.Line(x=NY['Month'].loc[NY['RegionName']==k], y=NY['MeanValue'].loc[NY['RegionName']==k], name=str(k)))
 
@@ -115,6 +116,7 @@ fig1.update_xaxes(
     )
 )
 
+# fig2 = preds.iplot(kind='bar', x=index, y='predicted', title='Time Series with Range Slider and Selectors', asFigure=True)
 
 
 #### FIG 3
@@ -131,51 +133,14 @@ fig3.update_layout(title_text='MeanValues by Train Line',
 
 
 top5 = df.loc[(df['RegionName'] == 10708) | (df['RegionName']==10706) | (df['RegionName']==10803) | (df['RegionName']==10514) | (df['RegionName']==10605) ]
+top5_fc = forecast.loc[(forecast['RegionName'] ==10708) | (forecast['RegionName']==10706) | (forecast['RegionName'] ==10514) | (forecast['RegionName']==10605)]
 
 fig4 = go.Figure()
-fig4 = px.scatter(top5, x='Month', y='MeanValue')
-#fig4.add_trace(go.Scatter(x=df['DateTime']['10708'], y=df['MeanValue']['10708'], name="10708"))
-fig4.update_layout(title_text='Top 5 Zip Codes',
+fig4.add_trace(go.Scatter(x=top5['Month'], y=top5['MeanValue']))
+# px.scatter(top5, x='Month', y='MeanValue')
+fig4.add_trace(go.Scatter(x=top5_fc['Month'], y=top5_fc['predicted']))
+fig4.update_layout(title_text='Top 5 Zip Code Forecasts',
                   xaxis_rangeslider_visible=True)
-
-#top5 = df.loc[df['RegionName']  = ['10708', '10706', '10803', '10514', '10605'])
-#fig4 = px.scatter(top5, x='Month', y='MeanValue', name='RegionName')
-#fig4.update_layout(title_text='Top 5 Zip Code Mean Values',
-                  #xaxis_rangeslider_visible=True)
-#mapTime(NYC,xcol='RegionName', ycol='MeanValue',X=top5recs, vlines=True, MEAN=True)
-
-
-###
-
-# fig = px.density_heatmap(df, x="ROI", y="conf_mean", marginal_x="rug", marginal_y="histogram")
-# fig.show()
-
-
-# ts_data = go.Scatter(x=df.index,y=df.MeanValue)
-# layout = go.Layout(title='Timeseries Plot', xaxis=dict(title='Date'),yaxis=dict(title='(Price)'))
-# fig3 = go.Figure(data=[ts_data], layout=layout)
-# pyo.iplot(fig3, sharing='public')
-
-# fig.update_layout(
-#     plot_bgcolor=colors['background'],
-#     paper_bgcolor=colors['background'],
-#     font_color=colors['text']
-# )
-
-# fig,ax = mapTime(d=NYC, xcol='RegionName', ycol='MeanValue', X=[], vlines=True, MEAN=True)
-
-# fig3 = go.Figure()
-
-# fig3 = plt.figure(figsize=(13,5))
-#     ts1.plot(label='d=1',figsize=(13,5), c='blue',lw=1,alpha=.7)
-#     ts2.plot(label='d=2',figsize=(13,5), c='red',lw=1.2,alpha=.8)
-#     ts3.plot(label='d=3',figsize=(13,5), c='magenta',lw=1,alpha=.7)
-#     ts4.plot(label='d=4',figsize=(13,5), c='green',lw=1,alpha=.7)
-#     plt.legend(bbox_to_anchor=(1.04,1), loc="upper left", frameon=True, 
-#                fancybox=True, facecolor='lightgray')
-#     plt.tight_layout()
-#     plt.gcf().autofmt_xdate()
-#     plt.show();
 
 
 # DATA TABLES
@@ -192,10 +157,6 @@ def generate_table(dataframe, max_rows=5):
         ]), 
     ])
 
-# FORECASTING
-# r,forecast, fig, ax = forecastX(model_output, train, test, get_metrics=True)
-# gridX, best_params = gridMAX(ts,pdq=pdq)
-# metagrid, ROI = gridMAXmeta(KEYS=NYC, s=False)
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
     html.H1(
@@ -214,28 +175,58 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         }
     ),
 
-    # dcc.Graph(
-    #     id='timeseries',
-    #     figure=fig
+    dcc.Graph(
+        id='forecast-graph',
+        figure=fig
+    ),
+
+    # dcc.Store(
+    # id='forecast-figure-store',
+    # data=[{
+    #      'x': preds[preds['RegionName'] == '10701']['Month']
+    #      'y': preds[preds['RegionName'] == '10701']['predicted']
+    # }]
     # ),
+    # 'Indicator',
+    # dcc.Dropdown(
+    #     id='forecast-graph-indicator',
+    #     options=[
+    #         {'label': 'Predicted', 'value': 'predicted'},
+    #         {'label': 'Mean Value', 'value': df_preds['MeanValue']}
+   
+    #         #{'label': 'Forecast', 'value': ''}
+    #     ], 
+    #     value='predicted'
+    # ),
+    # 'RegionName',
+    # dcc.Dropdown(
+    #      id='forecast-graph-zipcode',
+    #      options=[
+    #          {'label': RegionName, 'value': RegionName}
+    #          for RegionName in available_zipcodes
+    #      ],
+    #      value='10701'
+    # ),
+    # 'Graph scale',
+    # dcc.RadioItems(
+    #     id='forecast-graph-scale',
+    #     options=[
+    #         {'label': x, 'value': x} for x in ['linear', 'log']
+    #     ],
+    #     value='linear'
+    # ),
+    # html.Hr(),
+    # html.Details([
+    #     html.Summary('Contents of figure storage'),
+    #     dcc.Markdown(
+    #         id='forecast-figure-json'
+    #     )
+    # ]),
 
     dcc.Graph(
         id='ts',
         figure=fig1
     ),
-
-    # dcc.Input(
-    #     id='number-in',
-    #     value=10701,
-    #     style={'fontSize':28}
-    # ),
-    # html.Button(
-    #     id='submit-button',
-    #     n_clicks=0,
-    #     children='Submit',
-    #     style={'fontSize':28}
-    # ),
-    # html.H1(id='number-out'),
 
     dcc.Graph(
         id='ts_trainlines',
@@ -249,15 +240,14 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
 
     generate_table(df_preds),
 
-    
     dcc.Graph(
         id='clientside-graph'
     ),
     dcc.Store(
         id='clientside-figure-store',
         data=[{
-            'x': df_preds[df_preds['RegionName'] == '10701'].index,
-            'y': df_preds[df_preds['RegionName'] == '10701']['MeanValue']
+            'x': preds[preds['RegionName'] == '10701'].index,
+            'y': preds[preds['RegionName'] == '10701']['MeanValue']
         }]
     ),
     'Indicator',
@@ -265,7 +255,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         id='clientside-graph-indicator',
         options=[
             {'label': 'Mean Value', 'value': 'MeanValue'},
-            # {'label': 'SizeRank', 'value': 'SizeRank'},
+            {'label': 'Predicted', 'value': 'predicted'},
             # {'label': 'Rolling Average', 'value': 'RollingAvg'}
         ], 
         value='MeanValue'
@@ -294,7 +284,18 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
             id='clientside-figure-json'
         )
     ])
-
+  # dcc.Input(
+    #     id='number-in',
+    #     value=10701,
+    #     style={'fontSize':28}
+    # ),
+    # html.Button(
+    #     id='submit-button',
+    #     n_clicks=0,
+    #     children='Submit',
+    #     style={'fontSize':28}
+    # ),
+    # html.H1(id='number-out'),
 ])
 
 # @app.callback(
@@ -305,13 +306,53 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
 #     return '{} displayed after {} clicks'.format(number,n_clicks)
 
 
+# @app.callback(
+#     Output('forecast-figure-store', 'data'),
+#     [Input('forecast-graph-indicator', 'value'),
+#      Input('forecast-graph-zipcode', 'value')]
+# )
+# def update_store_data(indicator, zipcode):
+#     dff = preds[preds['RegionName'] == zipcode]
+
+#     return [{
+#         'x': dff['Month'],
+#         'y': dff[indicator],
+#         'mode': 'markers'
+#     }]
+
+
+# app.clientside_callback(
+#     """
+#     function(data, scale) {
+#         return {
+#             'data': data,
+#             'layout': {
+#                  'yaxis': {'type': scale}
+#              }
+#         }
+#     }
+#     """,
+#     Output('forecast-graph', 'figure'),
+#     [Input('forecast-figure-store', 'data'),
+#      Input('forecast-graph-scale', 'value')]
+# )
+
+
+# @app.callback(
+#     Output('forecast-figure-json', 'children'),
+#     [Input('forecast-figure-store', 'data')]
+# )
+# def generated_figure_json(data):
+#     return '```\n'+json.dumps(data, indent=2)+'\n```'
+
+
 @app.callback(
     Output('clientside-figure-store', 'data'),
     [Input('clientside-graph-indicator', 'value'),
      Input('clientside-graph-zipcode', 'value')]
 )
 def update_store_data(indicator, zipcode):
-    dff = df_preds[df_preds['RegionName'] == zipcode]
+    dff = preds[preds['RegionName'] == zipcode]
     return [{
         'x': dff.index,
         'y': dff[indicator],
@@ -342,6 +383,7 @@ app.clientside_callback(
 )
 def generated_figure_json(data):
     return '```\n'+json.dumps(data, indent=2)+'\n```'
+
 
 
 if __name__ == '__main__':

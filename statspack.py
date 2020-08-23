@@ -417,7 +417,9 @@ def mapTime(d, xcol, ycol='MeanValue', X=None, vlines=None, MEAN=True):
     *Ex2: `d` = dictionary of dataframes
     mapTime(d=NYC, xcol='RegionName', y='MeanValue')
     """
-    
+
+    import matplotlib as mpl
+    mpl.rc('font', **font)
     font = {'family' : 'monospace',
         'weight' : 'bold',
         'size'   : 24}

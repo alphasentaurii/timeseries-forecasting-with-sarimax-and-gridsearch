@@ -1117,31 +1117,71 @@ def gridMAXmeta(KEYS, s=False):
 
 
 
-def forecastX_plotly(model_output, train, test, start=None, end=None, get_metrics=False):
-    """
-    Uses get_prediction=() and conf_int() methods from statsmodels 
-        get_prediction (exog,transform,weightsrow_labels,pred_kwds)
-    """
+# def forecastX_plotly(model_output, train, test, start=None, end=None, get_metrics=False):
+#     """
+#     Uses get_prediction=() and conf_int() methods from statsmodels 
+#         get_prediction (exog,transform,weightsrow_labels,pred_kwds)
+#     """
 
-    if start is None:
-        start = test.index[0]     
-    if end is None:
-        end = test.index[-1]    
+#     if start is None:
+#         start = test.index[0]     
+#     if end is None:
+#         end = test.index[-1]    
         
-    # Get predictions starting from 2013 and calculate confidence intervals.
-    prediction = model_output.get_prediction(start=start,end=end, dynamic=True)
+#     # Get predictions starting from 2013 and calculate confidence intervals.
+#     prediction = model_output.get_prediction(start=start,end=end, dynamic=True)
     
-    forecast = prediction.conf_int()
-    forecast['predicted_mean'] = prediction.predicted_mean
-    fc_plot = pd.concat([forecast, train], axis=1)
+#     forecast = prediction.conf_int()
+#     forecast['predicted_mean'] = prediction.predicted_mean
+#     fc_plot = pd.concat([forecast, train], axis=1)
 
-    ## Get ROI Forecast:
-    r = calcROI(investment=forecast['predicted_mean'].iloc[0], 
-                final_value=forecast['predicted_mean'].iloc[-1])
+#     ## Get ROI Forecast:
+#     r = calcROI(investment=forecast['predicted_mean'].iloc[0], 
+#                 final_value=forecast['predicted_mean'].iloc[-1])
 
-    zc = train.name
+#     zc = train.name
 
-    #fig, ax = plt.subplots(figsize=(21,13))
+#     fig=go.Figure()
+#     #fig, ax = plt.subplots(figsize=(21,13))
+#     fig.add_trace(go.Line(x=train.index, y=train.MeanValue))
+#     fig.add_trace(go.Line(x=test.index, y=test.MeanValue))
+#     fig.add_trace(go.Line(x))
+
+
+
+
+      #train.plot(ax=ax,label='Training Data',lw=4) # train.index[0] '1996-04-01, train.index[-1] # 2013-11-01
+    #test.plot(ax=ax,label='Test Data',lw=4) # test.index[0] '2013-12-01 , test.index[-1] '2018-04-01
+    
+    #forecast['predicted_mean'].plot(ax=ax, label='Forecast', color='magenta',lw=4)
+
+
+# fig1.add_trace(go.Scatter(x=df.index, y=df['MeanValue'], name="Mean Home Value",line_color='crimson'))
+# fig1.add_trace(go.Scatter(x=FC.index, y=FC['pred_mean'], name="Forecast Value",line_color='deepskyblue'))
+# fig1.add_trace(go.Scatter(x=NY_Hudson['DateTime'], y=NY_Hudson['MeanValue'], name="Hudson MeanValue",
+#                          line_color='lightgreen'))
+# fig1.update_layout(title_text='MeanValues by Train Line',
+#                   xaxis_rangeslider_visible=True)
+
+    
+    fig1.add_trace(go.Line(x=NY['Month'].loc[NY['RegionName']==k], y=NY['MeanValue'].loc[NY['RegionName']==k], name=str(k)))
+
+    fig1.update_layout(title_text='Westchester County NY - Mean Home Values',
+                    xaxis_rangeslider_visible=True)
+
+
+    fig1.update_xaxes(
+        rangeslider_visible=True,
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all")
+            ])
+        )
+    )
     #train.plot(ax=ax,label='Training Data',lw=4) # train.index[0] '1996-04-01, train.index[-1] # 2013-11-01
     #test.plot(ax=ax,label='Test Data',lw=4) # test.index[0] '2013-12-01 , test.index[-1] '2018-04-01
     
@@ -1168,6 +1208,6 @@ def forecastX_plotly(model_output, train, test, start=None, end=None, get_metric
     #if get_metrics == True:
     #   metrics = spak.model_evaluation(ts_true=test, ts_pred=forecast['predicted_mean'])
 
-    return r, forecast#, fig, ax
+    return r, forecast, fig
 
 #forecast, fig, ax = forecastX(model_output, train, test)
