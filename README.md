@@ -7,6 +7,10 @@ Time Series Forecasting with SARIMAX and Gridsearch is a `housing market predict
 
 ![](./10605.png)
 
+## Demo App
+
+To see a forecasting dashboard app demo based on this project, checkout my project [RealtyRabbit](https://realty-rabbit.herokuapp.com/) hosted on Heroku or view the source code on [Github](https://github.com/hakkeray/realty-rabbit).
+
 ## Summary
 
 Prior to training, I set out to identify trends, seasonality, and autoregression elements within the Zillow Housing Market Dataset. I then use a fitting procedure to find the coefficients of a regression model, including several plots and statistical tests of the residual errors. The top 5 zip code recommendations rely on the following factors: `highest ROI`, `lowest confidence intervals`, and `shortest commute time` from Grand Central Station.
@@ -21,11 +25,11 @@ Before you begin, ensure you have met the following requirements:
 
 * You have a `<Windows/Linux/Mac>` machine.
 * You have installed the latest version of `Jupyter Notebook`
-* Install PyPi and FSDS libraries:
+* Install PyPi and Dash libraries:
 
 ```bash
-!pip install -U uszipcode
-!pip install -U fsds_100719
+pip install uszipcode
+pip install dash
 ```
 
 ## Running the Time Series Forecasting with SARIMAX and Gridsearch Project
@@ -38,6 +42,12 @@ In the command line/terminal:
 $ git clone https://github.com/hakkeray/timeseries-forecasting-with-sarimax-and-gridsearch
 $ cd timeseries-forecasting-with-sarimax-and-gridsearch
 $ jupyter notebook
+```
+
+To run just the dashboard app using dash:
+```bash
+cd app/
+python app.py
 ```
 
 Please note that the Zillow data set contains *millions* of US Zipcodes. If you want to fork this project and follow along with some of the steps I took, you can apply the same model I did to a completely different county. The only part that you'll need to skip (or adjust) is the Metro North railroad section, since this only applies to Westchester County, New York. 
